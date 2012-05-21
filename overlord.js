@@ -101,7 +101,7 @@
       function drop(name) {
         if(apis[name]){
           //destroy the facade to be sure - it might be referenced in lots of places and I want it dead no matter what.
-          apis[name].facade = {};
+          apis[name].facade = null;
           delete apis[name].facade;
 
           //delete
