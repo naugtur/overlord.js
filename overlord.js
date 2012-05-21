@@ -172,17 +172,15 @@
       //-------------------------------------------Export methods
       return {
 
+        defineInterface: defineInterface,
+        register: register,
+        drop: drop,
+        getFacade: getFacade,
+        getDebugInfo: getDebugInfo,
+
         publish: publish,
         subscribe: subscribe,
-        unsubscribe: unsubscribe,
-
-        API: {
-          defineInterface: defineInterface,
-          register: register,
-          drop: drop,
-          getFacade: getFacade,
-          getDebugInfo: getDebugInfo
-        }
+        unsubscribe: unsubscribe
 
       }
     })();

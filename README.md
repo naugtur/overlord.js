@@ -10,15 +10,15 @@ Overlord basically lets you register a group of objects with methods, and use th
 
 ## Methods:
 
-      Overlord.API: {
-          defineInterface,
-          register,
-          getFacade,
-          drop,
+      Overlord: {
+          defineInterface
+          register
+          getFacade
+          drop
           getDebugInfo
         }
 
-###Overlord.API.defineInterface(name,definition)
+###Overlord.defineInterface(name,definition)
 
 Defines that all object registered for a given name must implement an interface. Defining interfaces is optional. If no interface is defined prior to the first register call, the API becomes loosely typed and all methods from all registered objects are avaliable safely. (no `object has no method...` errors)
 
@@ -46,7 +46,7 @@ Defines that all object registered for a given name must implement an interface.
     
 `defineInterface` returns a boolean value. The returned value states if there is an interface definition for that API name. Therefore it returns true when it succeeds in defining an interface OR if the interface was already defined and false only when the API had an object registered before any attempt of defining an interface was made. This allows the developer to put multiple `defineInterface` calls in the code and react only if all of them failed to be called before first object was registered.
     
-###Overlord.API.register(name,object)
+###Overlord.register(name,object)
 
 Registers an object as an implementation to an API. 
 
@@ -56,19 +56,19 @@ Registers an object as an implementation to an API.
  - if the API is loosely typed (no `defineInterface` call was made for this API), all the methods of the `object` will be avaliable to the caller.
 
  
-###Overlord.API.getFacade(name) 
+###Overlord.getFacade(name) 
 
 Returns an object (a singleton, only one instance for each API name) that has all the methods avaliable in the selected API. Calling a method from the facade triggers execution of the same method from all objects registered for that API. Errors thrown by methods don't stop the execution. Returned values from all successful calls are returned as an array. Errors are avaliable via `getDebugInfo`
 
 `name` - string, name to identify the api
 
-###Overlord.API.drop(name)
+###Overlord.drop(name)
 
 Destroys the API. Cleans the facade object to be sure that it doesn't stay avaliable via a reference from somewhere else. If you want to use this function you are probably doing something wrong.
 
 `name` - string, name to identify the api
 
-###Overlord.API.getDebugInfo(name)
+###Overlord.getDebugInfo(name)
 
 Returns a hash with the following information:
 errors: an array of errors thrown in calls from the most recent facade method invocation
@@ -81,7 +81,7 @@ apiObject: internal object with the whole API definition, state and the facade i
 
 ###Overlord.publish(topic,data)
 
-Publishes information to all subscribers of the `topic`. `data` is a list that is passed as arguments.
+Publishes information to all subscribers of the `topic`. `data` is a list of arguments to be passed.
 
 ###Overlord.subscribe(topic,callback)
 
@@ -91,26 +91,45 @@ Subscribes a function to a `topic`. Returns an object that can be passed to the 
 
 Prevents the subscription defined by `subscriptionObject` from reacting to publications.
 
-      
-## Use cases:
 
-      //TODO//
 
-## Test case: 
+## Example of usage: 
 
-      var O=require('./overlord.js').Overlord;
-      O.API.defineInterface('a',['q','w']); //optional, if you want to get errors when object has no method on registration
-      O.API.register('a',{q:function(a){return ++a;},w:function(a){return --a;}});
-      O.API.register('a',{q:function(a){return a+2;},w:function(a){return a-2;}});
-      var f=O.API.getFacade('a');
+    //line for node.js
+    var Overlord=require('./overlord.js').Overlord;
+    
+    Overlord.defineInterface('myAPIName',['q','w']); //optional, if you want to get errors when object has no method on registration
+    Overlord.register('myAPIName',{q:function(a){return ++a;},w:function(a){return --a;}});
+    Overlord.register('myAPIName',{q:function(a){return a+2;},w:function(a){return a.misspeledPropName.something;}});
+    var f=Overlord.getFacade('myAPIName');
 
     f.q(11);
     [ 12, 13 ]
-    O.API.getDebugInfo('a');
-    { errors: [], method: 'q' }
-    f.w(11);
-    [ 10, 9 ]
-    O.API.getDebugInfo('a');
-    { errors: [], method: 'w' }
+    
+    Overlord.getDebugInfo('myAPIName');
+    { errors: [], method: 'q', apiObject: ... }
+    
+    f.w(11)
+    [ 10 ]
+    Overlord.getDebugInfo('myAPIName')
+    { errors: [
+          { 
+            stack: [Getter/Setter],
+            arguments: [Object],
+            type: 'non_object_property_load',
+            message: [Getter/Setter] 
+          }
+        ],
+      method: 'w',
+      apiObject: { 
+         definition: { q: true, w: true },
+         stronglyTypedInterface: true,
+         implementations: [ [Object], [Object] ],
+         lastErrors: [ [Object] ],
+         lastCall: 'w',
+         facade: { q: [Function], w: [Function] } 
+       }
+    }
 
+    
 
