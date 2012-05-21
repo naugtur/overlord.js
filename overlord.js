@@ -1,177 +1,194 @@
 (function(undefined) {
   var root = this,
-  
-  Overlord = (function() {
-    var topics = {},
-      topicsSequence = 1,
-      apis = {};
 
-    //-------------------------------------------Pub/Sub section
-    //subscribe
-    //name - optional
-    //returns name (generated if not given)
+    Overlord = (function() {
+      var apis = {};
 
-
-    function sub(topic, functionToCall, name) {
-      if (typeof(functionToCall) != 'function') {
-        return false;
-      }
-      if (!topics[topic]) {
-        topics[topic] = [];
-      }
-      name = (name) ? name : topicsSequence++;
-      topics[topic][name] = functionToCall;
-      return name;
-    }
-
-    //unsubscribe 
-    //unsubscribes an named subscribtion
-
-
-    function unSub(topic, name) {
-      if (!topics[topic] || name === undefined) {
-        return false;
-      } else {
-        delete topics[topic][name];
-        return true;
-      }
-    }
-
-    //publish
-    //data - optional
-
-
-    function pub(topic, data) {
-      if (topics[topic]) {
-        for (var i in topics[topic]) {
-          if (topics[topic].hasOwnProperty(i)) {
-            topics[topic][i].apply({}, data);
+      //-------------------------------------------APIs private section
+      
+      //private
+      //Add new methods to facade
+      function addFacadeMethod(name, methodName) {
+        if (apis[name].facade) {
+          apis[name].facade[methodName] = function() {
+            var results = [];
+            //save debug info
+            apis[name].lastCall = methodName;
+            for (var j = 0, k = apis[name].implementations.length; j < k; j += 1) {
+              if (apis[name].stronglyTypedInterface || typeof(apis[name].implementations[j][methodName]) === 'function') { //for loosely typed don't throw errors on missing methods
+                try {
+                  results.push(apis[name].implementations[j][methodName].apply({}, arguments)); //passes given arguments and stores results
+                } catch (e) {
+                  apis[name].lastErrors.push(e);
+                }
+              }
+            }
+            return results;
           }
         }
-        return true;
-      } else {
-        return false;
       }
-    }
-
-    //publish
-    //runs every subscriber separately and doesn't fail if one of them throws an error
-    //data - optional
-    //returns encountered errors
-
-
-    function pubSafe(topic, data) {
-      var errors = [];
-      if (topics[topic]) {
-        for (var i in topics[topic]) {
-          if (topics[topic].hasOwnProperty(i)) {
-            try {
-              topics[topic][i].apply({}, data);
-            } catch (e) {
-              errors.push(e);
+      
+      
+      //-------------------------------------------APIs public section
+      
+      //optional method to define a strongly typed interface for the api
+      //name - API name
+      //methodList - list of methods to implement or a prototype
+      //returns value of `stronglyTypedInterface`, so if one puts define call in multiple places not knowing which one runs first - he will know that it was correctly defined. If false comes back - define is being called after first register call, which is bad in most cases...
+      function defineInterface(name, methodListOrPrototype) {
+        if (!apis[name]) {
+          var strong=false,methodHash = {};
+          if(methodListOrPrototype){
+            strong=true;
+            if (typeof(methodListOrPrototype) == typeof([])) {
+              for (var i = 0, l = methodListOrPrototype.length; i < l; i += 1) {
+                methodHash[methodListOrPrototype[i]] = true;
+              }
+            } else {
+              for (var i in methodListOrPrototype) {
+                if (methodListOrPrototype.hasOwnProperty(i)) {
+                  methodHash[i] = true;
+                }
+              }
             }
           }
-        }
-        return (errors.length) ? errors : true;
-      } else {
-        return false;
-      }
-    }
+          apis[name] = {
+            definition: methodHash,
+            stronglyTypedInterface: strong,
+            //is it strongly typed?
+            implementations: [],
+            lastErrors: [],
+            lastCall: null
+          };
 
-    //-------------------------------------------APIs section
-
-    function define(name, methodList) {
-      if (!apis[name]) {
-        apis[name] = {
-          definition: methodList,
-          implementations: [],
-          lastErrors: [],
-          lastCall: null
-        };
-      }
-    }
-
-    function register(name, object) {
-      if (!apis[name]) {
-        throw ("Missing interface definition");
-      }
-      for (var i = 0, l = apis[name].definition.length; i < l; i += 1) {
-        if (apis[name].definition.hasOwnProperty(i) && typeof(object[apis[name].definition[i]]) != 'function') {
-          throw ("Given object is not an implementation for API:" + name + ". Method " + apis[name].definition[i] + " is missing");
+          return apis[name].stronglyTypedInterface;
+        } else {
+          return apis[name].stronglyTypedInterface;
         }
       }
-      apis[name].implementations.push(object);
-      return object;
-    }
 
-    function drop(name) {
-      apis[name].implementations = [];
-    }
+      //registers an object to an api
+      //if interface was not defined, it creates a loosely typed interface
+      //name - API name
+      //object - object to be called with that api
+      function register(name, object) {
+        if (!apis[name]) {
+          defineInterface(name); //auto loosely typed;
+        }
 
-    function wrapRunAll(name, i) {
-
-    }
-
-    function getFacade(name) {
-      if (apis[name].facade) {
-        return apis[name].facade;
-      } else {
-        var facade = {};
-        for (var i = 0, l = apis[name].definition.length; i < l; i += 1) {
-          if (apis[name].definition.hasOwnProperty(i)) {
-            facade[apis[name].definition[i]] = (function() {
-              var methodName = apis[name].definition[i]; //store method name in scope
-              return function() {
-                var results = [];
-                //save debug info
-                apis[name].lastCall = methodName;
-                for (var j = 0, k = apis[name].implementations.length; j < k; j += 1) {
-                  try {
-                    results.push(apis[name].implementations[j][methodName].apply({}, arguments)); //passes given arguments and stores results
-                  } catch (e) {
-                    apis[name].lastErrors.push(e);
-                  }
-                }
-                return results;
-              }
-            })();
+        if (apis[name].stronglyTypedInterface) {
+          for (var iMethod in apis[name].definition) {
+            if (apis[name].definition.hasOwnProperty(iMethod) && typeof(object[iMethod]) != 'function') {
+              throw ("Given object is not an implementation for API:" + name + ". Method " + i + " is missing");
+            }
           }
+        } else {
+          for (var iMethod in object) {
+            if (object.hasOwnProperty(iMethod) && apis[name].definition[iMethod] !== true && typeof(object[iMethod]) == 'function') {
+              apis[name].definition[iMethod] = true;
+              addFacadeMethod(name, iMethod); //safe call, does nothing if no facade
+            }
+          }
+
         }
 
-        apis[name].facade = facade;
-        return facade;
-
+        //finalize by adding the object to implementation list
+        apis[name].implementations.push(object);
+        return object;
       }
 
-    }
-    
-    function getDebugInfo(name){
+      //Destroys the named api and prevents its facades from trying to work
+      function drop(name) {
+        if(apis[name]){
+          //destroy the facade to be sure - it might be referenced in lots of places and I want it dead no matter what.
+          apis[name].facade = {};
+          delete apis[name].facade;
+
+          //delete
+          delete apis[name];
+        }
+      }
+
+
+      //Returns a facade for a given api name
+      //The facade for a name is a singleton
+      //New objects registered after the facade was created are added to the facade on the fly
+      function getFacade(name) {
+        if (apis[name]) {
+          if (apis[name].facade) {
+            return apis[name].facade;
+          } else {
+            apis[name].facade = {};
+            for (var iMethod in apis[name].definition) {
+              if (apis[name].definition.hasOwnProperty(iMethod)){
+                addFacadeMethod(name, iMethod);
+              }
+            }
+
+            return apis[name].facade;
+
+          }
+        } else {
+          //you mean what exactly?
+          throw ('There is no such api: ' + name);
+        }
+      }
+      
+      //returns debug information for the last call to a given API
+      function getDebugInfo(name) {
+        if(apis[name]){
+          return {
+            errors: apis[name].lastErrors,
+            method: apis[name].lastCall,
+            apiObject: apis[name]
+          }
+        }else{
+          return "no such api"; //this should be an error, but it's for debug purposes anyway
+        }
+      }
+
+      //-------------------------------------------Pub/Sub section
+      //this is a publisher/subscriber implementation on top of the extended mediator pattern
+      
+      //good old publish from pub/sub
+      function publish(topic, data) {
+          getFacade('SUBSCRIBTIONS:' + topic).action.apply({}, data);
+      }
+      
+      //subscribe 
+      //returns the subscribtion object
+      function subscribe(topic, callback) {
+        return register('SUBSCRIBTIONS:' + topic, {
+          action: callback
+        });
+      }
+
+      //unsubscribe
+      //provide the object returned from subscribe as an argument to turn off the subscribtion
+      function unsubscribe(object) {
+        delete object.action;
+      }
+
+      //-------------------------------------------Export methods
       return {
-        errors: apis[name].lastErrors,
-        method: apis[name].lastCall
+
+        publish: publish,
+        subscribe: subscribe,
+        unsubscribe: unsubscribe,
+
+        API: {
+          defineInterface: defineInterface,
+          register: register,
+          drop: drop,
+          getFacade: getFacade,
+          getDebugInfo: getDebugInfo
         }
+
       }
+    })();
 
-    return {
-      publish: pub,
-      publishSafe: pubSafe,
-      subscribe: sub,
-      unsubscribe: unSub,
-      API: {
-        define: define,
-        register: register,
-        drop: drop,
-        getFacade: getFacade,
-        getDebugInfo: getDebugInfo
-      }
-
-    }
-  })();
-
- //publishing: to the global space
- //TODO: AMD if avaliable
- root.Overlord=Overlord;
+  //publishing: to the global space
+  //TODO: AMD if avaliable
+  root.Overlord = Overlord;
 
 }).call(this);
-
-

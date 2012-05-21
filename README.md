@@ -26,7 +26,7 @@ TODO: create documentation and examples;
 ## Test case: 
 
       var O=require('./overlord.js').Overlord;
-      O.API.define('a',['q','w']);
+      O.API.defineInterface('a',['q','w']); //optional, if you want to get errors when object has no method on registration
       O.API.register('a',{q:function(a){return ++a;},w:function(a){return --a;}});
       O.API.register('a',{q:function(a){return a+2;},w:function(a){return a-2;}});
       var f=O.API.getFacade('a');
