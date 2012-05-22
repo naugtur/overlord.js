@@ -185,8 +185,13 @@
       }
     })();
 
-  //publishing: to the global space
-  //TODO: AMD if avaliable
-  root.Overlord = Overlord;
+
+  if ( typeof define !== "undefined" ) {
+    //AMD if avaliable
+    define("Overlord",[],function(){ return Overlord; });  
+  } else {
+    //publishing to the global space
+    root.Overlord = Overlord;
+  }
 
 }).call(this);
