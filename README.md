@@ -65,8 +65,10 @@ Defines that all object registered for a given name must implement an interface.
         method1:function(){/*real function*/},
         method2:123
         }
+        
+  Why? Because you might want to define an interface with a list of methods or with a prototype object that you already have, but some methods are missing. All use-cases are covered. 
     
-`defineInterface` returns a boolean value. The returned value states if there is an interface definition for that API name. Therefore it returns true when it succeeds in defining an interface OR if the interface was already defined and false only when the API had an object registered before any attempt of defining an interface was made. This allows the developer to put multiple `defineInterface` calls in the code and react only if all of them failed to be called before first object was registered.
+`defineInterface` returns a boolean value. The returned value states if there is an interface definition for that API name. Therefore it returns true when it succeeds in defining an interface OR if the interface was already defined and false only when the API had an object registered before any attempt of defining an interface was made. This allows the developer to put multiple `defineInterface` calls in the code and react only if all of them failed to be called before first object was registered. Overlord doesn't force you to control the order in which modules are loaded.
 
 
 ###Overlord.drop(name)
