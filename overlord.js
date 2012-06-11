@@ -79,7 +79,7 @@
         if (apis[name].stronglyTypedInterface) {
           for (var iMethod in apis[name].definition) {
             if (apis[name].definition.hasOwnProperty(iMethod) && typeof(object[iMethod]) != 'function') {
-              throw ("Given object is not an implementation for API:" + name + ". Method " + i + " is missing");
+              throw ("Given object is not an implementation for API:" + name + ". Method " + iMethod + " is missing");
             }
           }
         } else {
