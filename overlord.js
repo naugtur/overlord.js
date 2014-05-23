@@ -5,7 +5,7 @@
       var apis = {};
 
       //-------------------------------------------APIs private section
-      
+
       //private
       //Add new methods to facade
       function addFacadeMethod(name, methodName) {
@@ -27,10 +27,10 @@
           }
         }
       }
-      
-      
+
+
       //-------------------------------------------APIs public section
-      
+
       //optional method to define a strongly typed interface for the api
       //name - API name
       //methodList - list of methods to implement or a prototype
@@ -133,7 +133,7 @@
           throw ('There is no such api: ' + name);
         }
       }
-      
+
       //returns debug information for the last call to a given API
       function getDebugInfo(name) {
         if(apis[name]){
@@ -149,13 +149,13 @@
 
       //-------------------------------------------Pub/Sub section
       //this is a publisher/subscriber implementation on top of the extended mediator pattern
-      
+
       //good old publish from pub/sub
       function publish(topic, data) {
           getFacade('SUBSCRIBTIONS:' + topic).action.apply({}, data);
       }
-      
-      //subscribe 
+
+      //subscribe
       //returns the subscribtion object
       function subscribe(topic, callback) {
         return register('SUBSCRIBTIONS:' + topic, {
@@ -186,9 +186,12 @@
     })();
 
 
-  if ( typeof define !== "undefined" ) {
+  if (typeof exports !== 'undefined') {
     //AMD if avaliable
-    define("Overlord",[],function(){ return Overlord; });  
+    if (typeof module !== 'undefined' && module.exports) {
+      exports = module.exports = Overlord;
+    }
+    exports.Overlord = Overlord;
   } else {
     //publishing to the global space
     root.Overlord = Overlord;
