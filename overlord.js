@@ -152,6 +152,7 @@
 
       //good old publish from pub/sub
       function publish(topic, data) {
+          data = (!(data instanceof Array)) ? [data] : data;
           getFacade('SUBSCRIBTIONS:' + topic).action.apply({}, data);
       }
 
